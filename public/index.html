@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CR4CK 'EM 4LL // code breaker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <canvas id="matrix" aria-hidden="true"></canvas>
+
+    <main class="crt">
+      <header class="topbar">
+        <h1 class="logo" data-text="CR4CK &#39;EM 4LL">CR4CK 'EM 4LL</h1>
+        <p class="tagline">// breach the mainframe · crack the access code</p>
+      </header>
+
+      <section class="hud">
+        <div class="stat"><span class="stat-label">LEVEL</span><span id="hud-level" class="stat-value">1</span></div>
+        <div class="stat"><span class="stat-label">TRIES LEFT</span><span id="hud-tries" class="stat-value">10</span></div>
+        <div class="stat"><span class="stat-label">SCORE</span><span id="hud-score" class="stat-value">0</span></div>
+        <div class="stat"><span class="stat-label">UPTIME</span><span id="hud-timer" class="stat-value">00:00</span></div>
+      </section>
+
+      <div class="layout">
+        <section class="console" aria-label="game board">
+          <div class="console-head">
+            <span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span>
+            <span class="console-title">root@cr4ck:~/breach</span>
+          </div>
+
+          <div id="board" class="board" aria-live="polite"></div>
+
+          <div class="current" id="current-row">
+            <div class="slots" id="slots"></div>
+            <div class="current-actions">
+              <button id="btn-back" class="ghost" title="Delete last symbol">DEL</button>
+              <button id="btn-clear" class="ghost" title="Clear guess">CLR</button>
+              <button id="btn-submit" class="primary" title="Submit guess (Enter)">TRANSMIT &#9654;</button>
+            </div>
+          </div>
+
+          <div class="keypad" id="keypad" aria-label="symbol keypad"></div>
+
+          <p class="hint" id="hint">Pick <b id="hint-len">4</b> symbols from the keypad, then TRANSMIT.
+            <span class="legend"><i class="peg locked"></i> = right symbol &amp; slot &nbsp;
+            <i class="peg leaked"></i> = right symbol, wrong slot</span>
+          </p>
+        </section>
+
+        <aside class="sidebar">
+          <div class="panel">
+            <h2 class="panel-title">TOP CRACKERS</h2>
+            <ol id="leaderboard" class="leaderboard"><li class="lb-empty">loading&hellip;</li></ol>
+          </div>
+          <div class="panel">
+            <h2 class="panel-title">INTEL LOG</h2>
+            <div id="log" class="log"></div>
+          </div>
+          <button id="btn-restart" class="ghost wide">&#8635; NEW GAME</button>
+        </aside>
+      </div>
+    </main>
+
+    <!-- overlay -->
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-card">
+        <h2 id="overlay-title" class="overlay-title">ACCESS GRANTED</h2>
+        <p id="overlay-msg" class="overlay-msg"></p>
+        <div id="overlay-code" class="overlay-code"></div>
+
+        <div id="submit-block" class="submit-block hidden">
+          <label for="player-name">handle:</label>
+          <input id="player-name" maxlength="16" placeholder="anon" autocomplete="off" />
+          <button id="btn-save" class="primary">SAVE SCORE</button>
+        </div>
+
+        <div class="overlay-actions">
+          <button id="btn-next" class="primary hidden">NEXT LEVEL &#9654;</button>
+          <button id="btn-again" class="ghost">PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./game.js" type="module"></script>
+  </body>
+</html>
