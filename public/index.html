@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Long Ride // first-person 13th-century horseback survival</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      { "imports": { "three": "./vendor/three.module.js" } }
+    </script>
+  </head>
+  <body>
+    <div id="game"><!-- three.js canvas mounts here --></div>
+
+    <!-- crosshair -->
+    <div id="crosshair" class="hidden">+</div>
+
+    <!-- top-left: horse & rider condition -->
+    <section class="hud panel meters" aria-label="condition">
+      <div class="meters-head">
+        <span id="horse-name">Companion</span>
+        <span class="gait" id="gait-label">Halt</span>
+      </div>
+      <div class="meter" data-k="bond"><label>Bond</label><div class="bar"><i id="bar-bond"></i></div></div>
+      <div class="meter" data-k="stamina"><label>Stamina</label><div class="bar"><i id="bar-stamina"></i></div></div>
+      <div class="meter" data-k="health"><label>Health</label><div class="bar"><i id="bar-health"></i></div></div>
+      <div class="meter" data-k="hunger"><label>Fed</label><div class="bar"><i id="bar-hunger"></i></div></div>
+      <div class="meter" data-k="thirst"><label>Water</label><div class="bar"><i id="bar-thirst"></i></div></div>
+      <div class="meter" data-k="energy"><label>Rest</label><div class="bar"><i id="bar-energy"></i></div></div>
+      <div class="meter" data-k="warmth"><label>Warmth</label><div class="bar"><i id="bar-warmth"></i></div></div>
+    </section>
+
+    <!-- top-right: route & weather -->
+    <section class="hud panel route" aria-label="route and weather">
+      <div class="clock"><span id="day-label">Day 1</span> · <span id="time-label">06:00</span></div>
+      <div class="weather" id="weather-now">Clear</div>
+      <div class="forecast">next: <span id="weather-next">—</span></div>
+      <hr />
+      <div class="objective">Waypoint <span id="wp-index">1</span>/<span id="wp-total">4</span></div>
+      <div class="dist"><span id="wp-dist">0</span> m <span id="wp-dir" class="dir">↑</span></div>
+      <div class="advice" id="advice">Follow the golden beacon.</div>
+    </section>
+
+    <!-- bottom-left: action prompt -->
+    <div class="hud prompt" id="prompt"></div>
+
+    <!-- bottom-center: controls -->
+    <section class="hud controls" aria-label="controls">
+      <span><b>Mouse</b> look</span>
+      <span><b>W A S D</b> ride</span>
+      <span><b>1 2 3 4</b> gait</span>
+      <span><b>Space</b> graze / drink</span>
+      <span><b>F</b> wood</span>
+      <span><b>C</b> campfire</span>
+      <span><b>R</b> rest</span>
+    </section>
+
+    <!-- minimap -->
+    <canvas id="minimap" class="hud" width="180" height="180"></canvas>
+
+    <!-- click-to-look hint -->
+    <div id="lock-hint" class="hud hidden">Click to look around · <b>Esc</b> to release the reins</div>
+
+    <!-- start screen -->
+    <div id="start" class="overlay">
+      <div class="overlay-card scroll">
+        <h1 class="title">THE LONG RIDE</h1>
+        <p class="subtitle">A first-person crossing on horseback · anno 1237</p>
+        <p class="lore">
+          Winter is turning. Seen through your own eyes in the saddle, you and your horse
+          must cross the open country, reaching each beacon before the animal gives out.
+          Look around with the mouse — even up at the wide sky — read the weather, spare
+          your mount's legs, water and graze it, and rest by the fire.
+        </p>
+        <div class="name-row">
+          <label for="rider-name">Your name</label>
+          <input id="rider-name" maxlength="18" placeholder="rider" autocomplete="off" />
+        </div>
+        <div class="name-row">
+          <label for="horse-input">Horse's name</label>
+          <input id="horse-input" maxlength="18" placeholder="companion" autocomplete="off" />
+        </div>
+        <button id="btn-begin" class="primary">SADDLE UP &#9654;</button>
+        <details class="help">
+          <summary>How to ride</summary>
+          <ul>
+            <li><b>Look</b>: move the mouse to look around (and up at the sky). Click the world to capture the mouse; press <b>Esc</b> to release it.</li>
+            <li><b>Ride</b>: <b>W/S</b> forward &amp; back, <b>A/D</b> to step sideways, following where you look.</li>
+            <li><b>Gaits</b> (1–4): Walk rests the legs, Trot travels, Canter is quick, Gallop is fastest but burns stamina — overexertion hurts health and bond.</li>
+            <li><b>Care</b>: at a pond hold <b>Space</b> to drink; on lush grass hold <b>Space</b> to graze.</li>
+            <li><b>Camp</b>: <b>F</b> near trees to gather wood, <b>C</b> to light a campfire, <b>R</b> to rest — recovers and deepens the bond.</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+
+    <!-- end screen -->
+    <div id="end" class="overlay hidden">
+      <div class="overlay-card scroll">
+        <h2 id="end-title" class="title">JOURNEY'S END</h2>
+        <p id="end-msg" class="lore"></p>
+        <ul class="stats" id="end-stats"></ul>
+        <div id="log-panel">
+          <h3 class="panel-title">EXPEDITION JOURNAL</h3>
+          <ol id="journal" class="journal"><li class="j-empty">loading…</li></ol>
+        </div>
+        <button id="btn-restart" class="primary">RIDE AGAIN</button>
+      </div>
+    </div>
+
+    <script src="./game.js" type="module"></script>
+  </body>
+</html>
