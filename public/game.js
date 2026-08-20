@@ -243,12 +243,22 @@ const campfire = (() => {
     log.position.y = 0.3; group.add(log);
   }
   const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(1.1, 3, 8),
-    new THREE.MeshBasicMaterial({ color: 0xff8c2a, transparent: true, opacity: 0.9 })
+    new THREE.ConeGeometry(1.5, 4.2, 8),
+    new THREE.MeshBasicMaterial({ color: 0xff8c2a, transparent: true, opacity: 0.95 })
   );
-  flame.position.y = 1.6; group.add(flame);
-  const light = new THREE.PointLight(0xff8a3a, 3, 140, 2);
-  light.position.y = 2.5; group.add(light);
+  flame.position.y = 2.1; group.add(flame);
+  const core = new THREE.Mesh(
+    new THREE.ConeGeometry(0.8, 2.6, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.95 })
+  );
+  core.position.y = 1.7; group.add(core);
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(6, 24),
+    new THREE.MeshBasicMaterial({ color: 0xff9a3a, transparent: true, opacity: 0.28, depthWrite: false })
+  );
+  glow.rotation.x = -Math.PI / 2; glow.position.y = 0.1; group.add(glow);
+  const light = new THREE.PointLight(0xff8a3a, 4, 180, 2);
+  light.position.y = 3; group.add(light);
   group.visible = false;
   scene.add(group);
   return { group, flame, light };
@@ -378,8 +388,13 @@ function toggleCampfire() {
   }
   if (state.wood > 0) {
     state.wood--;
-    state.camp = { x: state.x, z: state.z, fuel: 70 };
-    campfire.group.position.set(state.x, terrainH(state.x, state.z), state.z);
+    // place the fire a few steps ahead of the rider so it is in view
+    camera.getWorldDirection(_dir);
+    const fl = Math.hypot(_dir.x, _dir.z) || 1;
+    const cx = state.x + (_dir.x / fl) * 5;
+    const cz = state.z + (_dir.z / fl) * 5;
+    state.camp = { x: cx, z: cz, fuel: 70 };
+    campfire.group.position.set(cx, terrainH(cx, cz), cz);
     campfire.group.visible = true;
     toast("Campfire lit. Press R to rest.");
   } else toast("Need wood — press F near trees.");
@@ -428,7 +443,7 @@ function update(dt) {
 
   // ---- movement (first person) ----
   let moving = false;
-  if (!resting && controls.isLocked) {
+  if (!resting) {
     let f = 0, r = 0;
     if (keys.has("w") || keys.has("arrowup")) f += 1;
     if (keys.has("s") || keys.has("arrowdown")) f -= 1;
@@ -582,9 +597,9 @@ function updateSky(night) {
   sun.target.position.set(s.x, 0, s.z);
   const dayF = clamp(Math.sin(THREE.MathUtils.degToRad(Math.max(0, elevDeg + 6))), 0, 1);
   sun.intensity = 0.2 + dayF * 2.6;
-  hemi.intensity = 0.25 + dayF * 0.6;
-  ambient.intensity = 0.15 + dayF * 0.2;
-  renderer.toneMappingExposure = 0.18 + dayF * 0.42;
+  hemi.intensity = 0.4 + dayF * 0.55; // keep some moonlight at night
+  ambient.intensity = 0.28 + dayF * 0.2;
+  renderer.toneMappingExposure = 0.32 + dayF * 0.4;
   const nightF = clamp(-elevDeg / 12, 0, 1);
   stars.material.opacity = nightF * 0.9;
   // fog colour + density by time & weather
@@ -595,7 +610,7 @@ function updateSky(night) {
   else fc.copy(dusk).lerp(nite, clamp((0.15 - dayF) / 0.15, 0, 1));
   if (state.weather === "Snow") fc.lerp(new THREE.Color(0xd8dee6), 0.4);
   scene.fog.color.copy(fc);
-  scene.fog.density = wx.fog * (night ? 1.5 : 1);
+  scene.fog.density = wx.fog * (night ? 1.15 : 1);
   scene.background = fc;
 }
 
