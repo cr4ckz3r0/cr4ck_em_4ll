@@ -3,87 +3,104 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CR4CK 'EM 4LL // code breaker</title>
+    <title>The Long Ride // 13th-century horseback survival</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital@0;1&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <canvas id="matrix" aria-hidden="true"></canvas>
+    <div id="game">
+      <canvas id="world"></canvas>
 
-    <main class="crt">
-      <header class="topbar">
-        <h1 class="logo" data-text="CR4CK &#39;EM 4LL">CR4CK 'EM 4LL</h1>
-        <p class="tagline">// breach the mainframe · crack the access code</p>
-      </header>
-
-      <section class="hud">
-        <div class="stat"><span class="stat-label">LEVEL</span><span id="hud-level" class="stat-value">1</span></div>
-        <div class="stat"><span class="stat-label">TRIES LEFT</span><span id="hud-tries" class="stat-value">10</span></div>
-        <div class="stat"><span class="stat-label">SCORE</span><span id="hud-score" class="stat-value">0</span></div>
-        <div class="stat"><span class="stat-label">UPTIME</span><span id="hud-timer" class="stat-value">00:00</span></div>
+      <!-- top-left: horse & rider condition -->
+      <section class="hud panel meters" aria-label="condition">
+        <div class="meters-head">
+          <span id="horse-name">Companion</span>
+          <span class="gait" id="gait-label">Halt</span>
+        </div>
+        <div class="meter" data-k="bond"><label>Bond</label><div class="bar"><i id="bar-bond"></i></div></div>
+        <div class="meter" data-k="stamina"><label>Stamina</label><div class="bar"><i id="bar-stamina"></i></div></div>
+        <div class="meter" data-k="health"><label>Health</label><div class="bar"><i id="bar-health"></i></div></div>
+        <div class="meter" data-k="hunger"><label>Fed</label><div class="bar"><i id="bar-hunger"></i></div></div>
+        <div class="meter" data-k="thirst"><label>Water</label><div class="bar"><i id="bar-thirst"></i></div></div>
+        <div class="meter" data-k="energy"><label>Rest</label><div class="bar"><i id="bar-energy"></i></div></div>
+        <div class="meter" data-k="warmth"><label>Warmth</label><div class="bar"><i id="bar-warmth"></i></div></div>
       </section>
 
-      <div class="layout">
-        <section class="console" aria-label="game board">
-          <div class="console-head">
-            <span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span>
-            <span class="console-title">root@cr4ck:~/breach</span>
-          </div>
+      <!-- top-right: route & weather -->
+      <section class="hud panel route" aria-label="route and weather">
+        <div class="clock"><span id="day-label">Day 1</span> · <span id="time-label">06:00</span></div>
+        <div class="weather" id="weather-now">Clear</div>
+        <div class="forecast">next: <span id="weather-next">—</span></div>
+        <hr />
+        <div class="objective">Waypoint <span id="wp-index">1</span>/<span id="wp-total">4</span></div>
+        <div class="dist"><span id="wp-dist">0</span> m · <span id="wp-dir" class="dir">↑</span></div>
+        <div class="advice" id="advice">Follow the guide marker.</div>
+      </section>
 
-          <div id="board" class="board" aria-live="polite"></div>
+      <!-- bottom-left: action prompt -->
+      <div class="hud prompt" id="prompt"></div>
 
-          <div class="current" id="current-row">
-            <div class="slots" id="slots"></div>
-            <div class="current-actions">
-              <button id="btn-back" class="ghost" title="Delete last symbol">DEL</button>
-              <button id="btn-clear" class="ghost" title="Clear guess">CLR</button>
-              <button id="btn-submit" class="primary" title="Submit guess (Enter)">TRANSMIT &#9654;</button>
-            </div>
-          </div>
+      <!-- bottom-center: controls -->
+      <section class="hud controls" aria-label="controls">
+        <span><b>W A S D</b> steer</span>
+        <span><b>1 2 3 4</b> gait</span>
+        <span><b>Space</b> graze / drink</span>
+        <span><b>F</b> gather wood</span>
+        <span><b>C</b> campfire</span>
+        <span><b>R</b> rest</span>
+      </section>
 
-          <div class="keypad" id="keypad" aria-label="symbol keypad"></div>
+      <!-- minimap -->
+      <canvas id="minimap" class="hud" width="180" height="180"></canvas>
+    </div>
 
-          <p class="hint" id="hint">Pick <b id="hint-len">4</b> symbols from the keypad, then TRANSMIT.
-            <span class="legend"><i class="peg locked"></i> = right symbol &amp; slot &nbsp;
-            <i class="peg leaked"></i> = right symbol, wrong slot</span>
-          </p>
-        </section>
-
-        <aside class="sidebar">
-          <div class="panel">
-            <h2 class="panel-title">TOP CRACKERS</h2>
-            <ol id="leaderboard" class="leaderboard"><li class="lb-empty">loading&hellip;</li></ol>
-          </div>
-          <div class="panel">
-            <h2 class="panel-title">INTEL LOG</h2>
-            <div id="log" class="log"></div>
-          </div>
-          <button id="btn-restart" class="ghost wide">&#8635; NEW GAME</button>
-        </aside>
+    <!-- start screen -->
+    <div id="start" class="overlay">
+      <div class="overlay-card scroll">
+        <h1 class="title">THE LONG RIDE</h1>
+        <p class="subtitle">A solitary crossing on horseback · anno 1237</p>
+        <p class="lore">
+          Winter is turning. You and your horse must cross the open steppe, reaching each
+          waypoint before the animal gives out. Read the weather, spare your mount's legs,
+          water and graze it, and rest by the fire. Push too hard and you will lose your
+          only companion to the cold.
+        </p>
+        <div class="name-row">
+          <label for="rider-name">Your name</label>
+          <input id="rider-name" maxlength="18" placeholder="rider" autocomplete="off" />
+        </div>
+        <div class="name-row">
+          <label for="horse-input">Horse's name</label>
+          <input id="horse-input" maxlength="18" placeholder="companion" autocomplete="off" />
+        </div>
+        <button id="btn-begin" class="primary">SADDLE UP &#9654;</button>
+        <details class="help">
+          <summary>How to ride</summary>
+          <ul>
+            <li><b>Gaits</b> (1–4): Walk rests legs, Trot travels, Canter is quick, Gallop is fastest but burns stamina fast — overexertion hurts health and bond.</li>
+            <li><b>Care</b>: stand on lush grass and hold <b>Space</b> to graze; by water, hold <b>Space</b> to drink.</li>
+            <li><b>Camp</b>: press <b>F</b> near trees to gather wood, <b>C</b> to build/light a campfire, then <b>R</b> to rest — restores stamina, rest, warmth and deepens the bond (skips time).</li>
+            <li><b>Weather</b>: rain and snow chill you and tire the horse; fog and night cut visibility. Plan hops between waypoints around the forecast.</li>
+          </ul>
+        </details>
       </div>
-    </main>
+    </div>
 
-    <!-- overlay -->
-    <div id="overlay" class="overlay hidden">
-      <div class="overlay-card">
-        <h2 id="overlay-title" class="overlay-title">ACCESS GRANTED</h2>
-        <p id="overlay-msg" class="overlay-msg"></p>
-        <div id="overlay-code" class="overlay-code"></div>
-
-        <div id="submit-block" class="submit-block hidden">
-          <label for="player-name">handle:</label>
-          <input id="player-name" maxlength="16" placeholder="anon" autocomplete="off" />
-          <button id="btn-save" class="primary">SAVE SCORE</button>
+    <!-- end screen -->
+    <div id="end" class="overlay hidden">
+      <div class="overlay-card scroll">
+        <h2 id="end-title" class="title">JOURNEY'S END</h2>
+        <p id="end-msg" class="lore"></p>
+        <ul class="stats" id="end-stats"></ul>
+        <div id="log-panel">
+          <h3 class="panel-title">EXPEDITION JOURNAL</h3>
+          <ol id="journal" class="journal"><li class="j-empty">loading…</li></ol>
         </div>
-
-        <div class="overlay-actions">
-          <button id="btn-next" class="primary hidden">NEXT LEVEL &#9654;</button>
-          <button id="btn-again" class="ghost">PLAY AGAIN</button>
-        </div>
+        <button id="btn-restart" class="primary">RIDE AGAIN</button>
       </div>
     </div>
 

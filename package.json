@@ -1,7 +1,7 @@
 {
   "name": "cr4ck_em_4ll",
   "version": "1.0.0",
-  "description": "CR4CK 'EM 4LL - a hacker-themed code-cracking web game (Mastermind variant).",
+  "description": "The Long Ride - a realistic 13th-century open-world horseback survival game (browser).",
   "type": "module",
   "main": "server.js",
   "scripts": {
