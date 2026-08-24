@@ -12,14 +12,40 @@ in den Ordner **Desktop / Pen Test Engine**.
 Voraussetzungen: **Python 3.11+** (Haken bei „Add python.exe to PATH“) und
 idealerweise **Git**.
 
-1. Dieses Repository klonen oder die Dateien herunterladen.
-2. Doppelklick auf `Install-PenTestEngine.cmd`  
-   oder in PowerShell:
+`.\Install-PenTestEngine.ps1` funktioniert nur **in dem Ordner, in dem die Datei liegt**.
+Im Home-Verzeichnis (`C:\Users\...`) ist das Skript nicht vorhanden.
 
-   ```powershell
-   Set-ExecutionPolicy -Scope Process Bypass
-   .\Install-PenTestEngine.ps1
-   ```
+### Variante A — aus jedem Ordner (empfohlen)
+
+In PowerShell einfach diese drei Zeilen einfügen:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+git clone https://github.com/leonardowo2002-bot/pentest-engine.git "$env:USERPROFILE\Desktop\Pen Test Engine"
+cd "$env:USERPROFILE\Desktop\Pen Test Engine"; .\install.ps1
+```
+
+Ohne Git:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+$dest = "$env:USERPROFILE\Desktop\Pen Test Engine"
+$zip = "$env:TEMP\pentest-engine.zip"
+Invoke-WebRequest "https://github.com/leonardowo2002-bot/pentest-engine/archive/refs/heads/main.zip" -OutFile $zip
+Expand-Archive $zip "$env:TEMP\pte" -Force
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item "$env:TEMP\pte\pentest-engine-main\*" $dest -Recurse -Force
+cd $dest; .\install.ps1
+```
+
+### Variante B — wenn du dieses Repo schon geklont hast
+
+In den Ordner wechseln, der `Install-PenTestEngine.ps1` enthält, dann:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\Install-PenTestEngine.ps1
+```
 
 Das Skript legt an:
 
