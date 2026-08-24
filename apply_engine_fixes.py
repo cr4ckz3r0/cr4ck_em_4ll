@@ -17,6 +17,16 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 OVERLAY = HERE / "engine_overlay"
 
+HELPER_SCRIPTS = (
+    "Start-LabRun.ps1",
+    "Start-PenTestEngine.cmd",
+    "Install-EngineTools.ps1",
+    "Start-OptionalPostgres.ps1",
+    "Apply-EngineFixes.ps1",
+    "Make-Ready.ps1",
+    "Make-Ready.cmd",
+)
+
 
 def find_package_root(root: Path) -> Path:
     if (root / "pentest" / "engine.py").is_file():
@@ -43,6 +53,63 @@ def copy_overlay(root: Path, overlay: Path) -> list[str]:
         copied.append(str(rel).replace("\\", "/"))
         print(f"Overlay: {dest}", flush=True)
     return copied
+
+
+def copy_helper_scripts(root: Path) -> list[str]:
+    copied: list[str] = []
+    for name in HELPER_SCRIPTS:
+        src = HERE / name
+        if not src.is_file():
+            continue
+        dest = root / name
+        shutil.copy2(src, dest)
+        copied.append(name)
+        print(f"Skript: {dest}", flush=True)
+    return copied
+
+
+def _set_env_key(path: Path, key: str, value: str) -> None:
+    raw = path.read_text(encoding="utf-8") if path.is_file() else ""
+    lines = raw.splitlines()
+    found = False
+    out: list[str] = []
+    prefix = key + "="
+    hash_prefix = "#" + key + "="
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith(prefix) or stripped.startswith(hash_prefix):
+            if not found:
+                out.append(key + "=" + value)
+                found = True
+            continue
+        out.append(line)
+    if not found:
+        out.append(key + "=" + value)
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+def prepare_install(root: Path) -> None:
+    pkg = root / "pentest"
+    example_env = pkg / ".env.example"
+    env_file = pkg / ".env"
+    if example_env.is_file() and not env_file.is_file():
+        shutil.copy2(example_env, env_file)
+        print(f".env angelegt: {env_file}", flush=True)
+    if env_file.is_file() and shutil.which("docker") is None:
+        _set_env_key(env_file, "PENTEST_DOCKER_ENABLED", "false")
+        print("PENTEST_DOCKER_ENABLED=false (kein Docker im PATH)", flush=True)
+    root_env = root / ".env"
+    if env_file.is_file() and not root_env.is_file():
+        shutil.copy2(env_file, root_env)
+
+    example_scope = pkg / "scope.example.json"
+    scope_file = pkg / "scope.json"
+    if example_scope.is_file() and not scope_file.is_file():
+        shutil.copy2(example_scope, scope_file)
+        print(f"scope.json angelegt: {scope_file}", flush=True)
+
+    reports = pkg / "data" / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
 
 
 def run_cve_patcher(root: Path) -> int:
@@ -95,6 +162,12 @@ def verify_overlay(root: Path) -> None:
     exporter = (root / "pentest" / "reporting" / "json_export.py").read_text(encoding="utf-8")
     if "reports_dir" not in exporter:
         missing.append("json_export.reports_dir")
+    ready = root / "pentest" / "ready.py"
+    if not ready.is_file():
+        missing.append("ready.py")
+    cli = (root / "pentest" / "cli.py").read_text(encoding="utf-8")
+    if "def ready(" not in cli:
+        missing.append("cli.ready")
     if missing:
         raise SystemExit("Overlay unvollstaendig: " + ", ".join(missing))
 
@@ -115,11 +188,14 @@ def main() -> int:
     print(f"==> Engine: {root}", flush=True)
     copied = copy_overlay(root, OVERLAY)
     print(f"==> {len(copied)} Overlay-Dateien", flush=True)
+    scripts = copy_helper_scripts(root)
+    print(f"==> {len(scripts)} Lab-Skripte im Engine-Ordner", flush=True)
     verify_overlay(root)
+    prepare_install(root)
     cve_rc = run_cve_patcher(root)
     if cve_rc:
         return cve_rc
-    print("Fertig. File-mode Reports unter pentest/data/reports/; --tools nmap bleibt nmap-only.", flush=True)
+    print("Fertig. Danach: python -m pentest ready   bzw. .\\Start-LabRun.ps1", flush=True)
     return 0
 
 

@@ -7,6 +7,40 @@ in den Ordner **Desktop / Pen Test Engine**.
 > Nur auf Systemen verwenden, die du besitzt oder für die du eine **schriftliche
 > Genehmigung** hast. Unautorisiertes Scannen ist illegal.
 
+## Einsatzbereit (Engine liegt schon auf dem Desktop)
+
+PowerShell, **ein Block** — Overlay, Lab-Skripte, `ready`-Check, Dry-Run auf `127.0.0.1`:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+$dest = "$env:USERPROFILE\Desktop\pte-fixes"
+if (-not (Test-Path $dest)) {
+  git clone --depth 1 -b cursor/pentest-engine-desktop-install-6ac6 https://github.com/cr4ckz3r0/cr4ck_em_4ll.git $dest
+} else {
+  git -C $dest pull --ff-only
+}
+cd $dest
+.\Make-Ready.ps1
+```
+
+Ohne Git (laedt das Branch-ZIP selbst):
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+$tmp = Join-Path $env:TEMP "Make-Ready.ps1"
+Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/Make-Ready.ps1" -OutFile $tmp
+& $tmp
+```
+
+Danach im Ordner `Desktop\Pen Test Engine`:
+
+```powershell
+.\Start-LabRun.ps1
+.\Start-LabRun.ps1 -Run
+```
+
+`-Run` fragt `JA` und scannt nur `127.0.0.1` (nmap). Anderes eigenes Ziel: `-Target`.
+
 ## Windows
 
 Voraussetzungen: **Python 3.11+** (Haken bei „Add python.exe to PATH“) und

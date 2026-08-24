@@ -33,7 +33,8 @@ Write-Host '==> Wende Desktop-Fixes an (Reports, --tools, CVE)' -ForegroundColor
 if ($LASTEXITCODE -ne 0) { throw 'apply_engine_fixes.py fehlgeschlagen.' }
 
 Write-Host ''
-Write-Host 'Fertig. Danach:' -ForegroundColor Green
+Write-Host 'Fertig. Danach im Engine-Ordner:' -ForegroundColor Green
+Write-Host '  python -m pentest ready'
+Write-Host '  .\Make-Ready.ps1'
 Write-Host '  .\Start-LabRun.ps1'
 Write-Host '  .\Start-LabRun.ps1 -Run'
-Write-Host 'Status ohne Postgres: python -m pentest status  (liest pentest\data\reports)'
