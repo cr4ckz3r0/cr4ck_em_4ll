@@ -94,7 +94,7 @@ Ordner ausführen:
 
 ```powershell
 cd "$env:USERPROFILE\Desktop\Pen Test Engine"
-Invoke-WebRequest "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/patch_cve_poller.py" -OutFile patch_cve_poller.py
+Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/patch_cve_poller.py" -OutFile patch_cve_poller.py
 .\pentest\.venv\Scripts\python.exe patch_cve_poller.py .
 $env:PYTHONPATH = (Get-Location).Path
 .\pentest\.venv\Scripts\python.exe -m pentest cve-update
@@ -131,8 +131,8 @@ PowerShell, im Engine-Ordner oder aus jedem Ordner (raw GitHub):
 Set-ExecutionPolicy -Scope Process Bypass
 cd "$env:USERPROFILE\Desktop\Pen Test Engine"
 $base = "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6"
-Invoke-WebRequest "$base/Install-EngineTools.ps1" -OutFile Install-EngineTools.ps1
-Invoke-WebRequest "$base/Start-LabRun.ps1" -OutFile Start-LabRun.ps1
+Invoke-WebRequest -UseBasicParsing "$base/Install-EngineTools.ps1" -OutFile Install-EngineTools.ps1
+Invoke-WebRequest -UseBasicParsing "$base/Start-LabRun.ps1" -OutFile Start-LabRun.ps1
 .\Install-EngineTools.ps1
 .\Start-LabRun.ps1
 # echter Scan erst nach dry-run, nur mit eigenem Ziel:
@@ -167,8 +167,8 @@ System sein:
 Set-ExecutionPolicy -Scope Process Bypass
 cd "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
 $base = "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6"
-Invoke-WebRequest "$base/Install-EngineTools.ps1" -OutFile Install-EngineTools.ps1
-Invoke-WebRequest "$base/Start-LabRun.ps1" -OutFile Start-LabRun.ps1
+Invoke-WebRequest -UseBasicParsing "$base/Install-EngineTools.ps1" -OutFile Install-EngineTools.ps1
+Invoke-WebRequest -UseBasicParsing "$base/Start-LabRun.ps1" -OutFile Start-LabRun.ps1
 .\Install-EngineTools.ps1
 .\Start-LabRun.ps1
 .\Start-LabRun.ps1 -Run
@@ -194,7 +194,7 @@ PowerShell, **genau dieser Ordner**, immer venv-Python:
 
 ```powershell
 cd "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
-Invoke-WebRequest "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/patch_cve_poller.py" -OutFile patch_cve_poller.py
+Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/patch_cve_poller.py" -OutFile patch_cve_poller.py
 .\pentest\.venv\Scripts\python.exe patch_cve_poller.py .
 .\pentest\.venv\Scripts\python.exe patch_cve_poller.py --self-test
 $env:PYTHONPATH = "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"

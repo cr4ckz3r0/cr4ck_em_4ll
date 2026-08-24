@@ -18,6 +18,10 @@
   This script does not scan from the cloud. Run it on the Windows laptop.
   Target MUST be a host you own or have written authorization for.
 
+  Windows PowerShell 5.1-safe: ASCII only, Write-Host in single quotes or
+  parentheses, no quoted-backslash in double-quoted strings, example lines use
+  '& $py ...' inside single-quoted strings.
+
 .PARAMETER Target
   IP, hostname, or URL. Default: 185.6.70.234 (override if that is not yours).
 
@@ -34,100 +38,99 @@
   Skip the JA confirmation when -Run is set.
 #>
 param(
-    [string]$Target = "185.6.70.234",
-    [string]$InstallDir = "",
-    [string]$Name = "Lab",
+    [string]$Target = '185.6.70.234',
+    [string]$InstallDir = '',
+    [string]$Name = 'Lab',
     [switch]$Run,
     [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
 if (-not $InstallDir) {
-    $desktop = [Environment]::GetFolderPath("Desktop")
-    if (-not $desktop) { $desktop = Join-Path $env:USERPROFILE "Desktop" }
-    $InstallDir = Join-Path $desktop "Pen Test Engine"
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    if (-not $desktop) { $desktop = Join-Path $env:USERPROFILE 'Desktop' }
+    $InstallDir = Join-Path $desktop 'Pen Test Engine'
 }
 
-$venvPython = Join-Path $InstallDir "pentest\.venv\Scripts\python.exe"
-$binDir = Join-Path $env:LOCALAPPDATA "PenTestEngine\bin"
-$pdtmHome = Join-Path $env:USERPROFILE ".pdtm\go\bin"
+$venvPython = Join-Path $InstallDir 'pentest\.venv\Scripts\python.exe'
+$binDir = Join-Path $env:LOCALAPPDATA 'PenTestEngine\bin'
+$pdtmHome = Join-Path $env:USERPROFILE '.pdtm\go\bin'
 
 if (-not (Test-Path $venvPython)) {
-    throw "venv-Python fehlt: $venvPython  (zuerst Install-PenTestEngine.ps1 / install.ps1, dann Install-EngineTools.ps1)"
+    throw ('venv-Python fehlt: ' + $venvPython + '  (zuerst Install-PenTestEngine.ps1 / install.ps1, dann Install-EngineTools.ps1)')
 }
-if (-not (Test-Path (Join-Path $InstallDir "pentest\cli.py"))) {
-    throw "Pen Test Engine nicht gefunden unter $InstallDir"
+if (-not (Test-Path (Join-Path $InstallDir 'pentest\cli.py'))) {
+    throw ('Pen Test Engine nicht gefunden unter ' + $InstallDir)
 }
 
 foreach ($dir in @(
         $binDir,
         $pdtmHome,
-        (Join-Path ${env:ProgramFiles(x86)} "Nmap"),
-        (Join-Path $env:ProgramFiles "Nmap")
+        (Join-Path ${env:ProgramFiles(x86)} 'Nmap'),
+        (Join-Path $env:ProgramFiles 'Nmap')
     )) {
     if ($dir -and (Test-Path $dir)) {
-        $env:Path = "$dir;$env:Path"
+        $env:Path = $dir + ';' + $env:Path
     }
 }
 
 $env:PYTHONPATH = $InstallDir
 Set-Location $InstallDir
 
-Write-Host "==> Pen Test Engine Lab-Run" -ForegroundColor Cyan
-Write-Host "    PYTHONPATH = $InstallDir"
-Write-Host "    python     = $venvPython"
-Write-Host "    Ziel       = $Target"
-Write-Host "    Name       = $Name"
-Write-Host "    Flags      = kein --zeroday, kein --hardcore"
-Write-Host ""
-Write-Host "Nur starten, wenn $Target DIR gehoert oder du schriftliche Erlaubnis hast." -ForegroundColor Yellow
-Write-Host "Unautorisiertes Scannen ist illegal."
-Write-Host ""
+Write-Host '==> Pen Test Engine Lab-Run' -ForegroundColor Cyan
+Write-Host ('    PYTHONPATH = ' + $InstallDir)
+Write-Host ('    python     = ' + $venvPython)
+Write-Host ('    Ziel       = ' + $Target)
+Write-Host ('    Name       = ' + $Name)
+Write-Host '    Flags      = kein --zeroday, kein --hardcore'
+Write-Host ''
+Write-Host ('Nur starten, wenn ' + $Target + ' DIR gehoert oder du schriftliche Erlaubnis hast.') -ForegroundColor Yellow
+Write-Host 'Unautorisiertes Scannen ist illegal.'
+Write-Host ''
 
-Write-Host "==> scope-add $Target"
+Write-Host ('==> scope-add ' + $Target)
 & $venvPython -m pentest scope-add $Target
-if ($LASTEXITCODE -ne 0) { throw "scope-add fehlgeschlagen (Exit $LASTEXITCODE)." }
+if ($LASTEXITCODE -ne 0) { throw ('scope-add fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
 
-Write-Host "==> engage --dry-run (kein Netzwerk-Scan der Tools)"
+Write-Host '==> engage --dry-run (kein Netzwerk-Scan der Tools)'
 & $venvPython -m pentest engage $Name -t $Target --dry-run
-if ($LASTEXITCODE -ne 0) { throw "dry-run fehlgeschlagen (Exit $LASTEXITCODE)." }
+if ($LASTEXITCODE -ne 0) { throw ('dry-run fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
 
-$engageLine = "& `"$venvPython`" -m pentest engage `"$Name`" -t $Target"
+$engageLine = '& "' + $venvPython + '" -m pentest engage "' + $Name + '" -t ' + $Target
 
 if (-not $Run) {
-    Write-Host ""
-    Write-Host "Dry-run fertig. Echten Scan NICHT gestartet." -ForegroundColor Green
-    Write-Host "Wenn $Target dein System ist, gleichen Ordner, dann entweder:"
-    Write-Host ""
-    Write-Host "  .\Start-LabRun.ps1 -Target $Target -Run"
-    Write-Host ""
-    Write-Host "oder venv-Python direkt:"
-    Write-Host ""
-    Write-Host "  cd `"$InstallDir`""
-    Write-Host "  `$env:PYTHONPATH = `"$InstallDir`""
-    Write-Host "  $engageLine"
-    Write-Host ""
-    Write-Host "Kein --zeroday, kein --hardcore."
+    Write-Host ''
+    Write-Host 'Dry-run fertig. Echten Scan NICHT gestartet.' -ForegroundColor Green
+    Write-Host ('Wenn ' + $Target + ' dein System ist, gleichen Ordner, dann entweder:')
+    Write-Host ''
+    Write-Host ('  .\Start-LabRun.ps1 -Target ' + $Target + ' -Run')
+    Write-Host ''
+    Write-Host 'oder venv-Python direkt:'
+    Write-Host ''
+    Write-Host ('  cd "' + $InstallDir + '"')
+    Write-Host ('  $env:PYTHONPATH = "' + $InstallDir + '"')
+    Write-Host ('  ' + $engageLine)
+    Write-Host ''
+    Write-Host 'Kein --zeroday, kein --hardcore.'
     return
 }
 
 if (-not $Force) {
-    Write-Host ""
-    Write-Host "Naechster Schritt sendet nmap/nuclei (und ggf. httpx/ffuf) an $Target." -ForegroundColor Yellow
-    Write-Host "Tippe JA (gross), nur wenn das Ziel dir gehoert."
-    $ans = Read-Host "Bestaetigung"
-    if ($ans -ne "JA") {
-        Write-Host "Abgebrochen. Kein echter Scan."
+    Write-Host ''
+    Write-Host ('Naechster Schritt sendet nmap/nuclei (und ggf. httpx/ffuf) an ' + $Target + '.') -ForegroundColor Yellow
+    Write-Host 'Tippe JA (gross), nur wenn das Ziel dir gehoert.'
+    $ans = Read-Host 'Bestaetigung'
+    if ($ans -ne 'JA') {
+        Write-Host 'Abgebrochen. Kein echter Scan.'
         return
     }
 }
 
-Write-Host "==> engage (ohne --zeroday / --hardcore)"
+Write-Host '==> engage (ohne --zeroday / --hardcore)'
 & $venvPython -m pentest engage $Name -t $Target
-if ($LASTEXITCODE -ne 0) { throw "engage fehlgeschlagen (Exit $LASTEXITCODE)." }
+if ($LASTEXITCODE -ne 0) { throw ('engage fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
 
-Write-Host ""
-Write-Host "Engage beendet." -ForegroundColor Green
-Write-Host "Status:  & `"$venvPython`" -m pentest status"
-)
+Write-Host ''
+Write-Host 'Engage beendet.' -ForegroundColor Green
+Write-Host ('Status:  & "' + $venvPython + '" -m pentest status')
