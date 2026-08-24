@@ -98,7 +98,15 @@ $env:PYTHONPATH = (Get-Location).Path
 .\pentest\.venv\Scripts\python.exe -m pentest cve-stats
 ```
 
-Das dauert ein paar Minuten (NVD + MiniLM). Danach: `python -m pentest intel-search "apache"`.
+Das dauert ein paar Minuten (NVD + MiniLM). Danach immer den **venv-Python** nutzen
+(nicht das `python` aus dem Windows-PATH):
+
+```powershell
+$env:PYTHONPATH = (Get-Location).Path
+.\pentest\.venv\Scripts\python.exe -m pentest intel-search "remote code execution"
+```
+
+Oder `Start-PenTestEngine.cmd` in denselben Ordner legen und damit starten.
 
 ## Hinweise
 
