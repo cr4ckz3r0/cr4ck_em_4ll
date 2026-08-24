@@ -308,9 +308,10 @@ Show-ToolRow 'nuclei'
 Show-ToolRow 'httpx'
 Show-ToolRow 'subfinder'
 Show-ToolRow 'ffuf'
-Show-ToolRow 'hydra'
-Show-ToolRow 'sqlmap'
-Show-ToolRow 'msfconsole'
+Show-ToolRow 'testssl.sh'
+Show-ToolRow 'nikto'
+Show-ToolRow 'gobuster'
+Write-Host '  hydra / sqlmap / msfconsole  nicht installiert (absichtlich)'
 
 $py = $venvPython
 Write-Host ''

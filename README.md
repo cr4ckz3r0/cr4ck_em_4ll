@@ -84,8 +84,23 @@ Starter: `~/Desktop/Pen Test Engine/start-pen-test-engine.sh`
 Nmap + nuclei (+ httpx/subfinder/ffuf) kommen über `Install-EngineTools.ps1`.
 Hydra, sqlmap und Metasploit bleiben auf Windows absichtlich weg.
 
-PostgreSQL ist optional. Ohne Datenbank läuft die Engine im Datei-Modus
-(`scope.json`, Audit/Evidence auf Disk).
+Nach dem Klon wendet der Installer `apply_engine_fixes.py` an (File-Mode-Reports,
+`--tools` wirklich ehren, CVE-Parser). Nach einem `git pull` der Engine erneut:
+
+```powershell
+cd "$env:USERPROFILE\Desktop\Pen Test Engine"
+# Skripte liegen in diesem Repo (cr4ck_em_4ll), nicht in pentest-engine:
+# aus dem Ordner mit Apply-EngineFixes.ps1:
+.\Apply-EngineFixes.ps1
+```
+
+PostgreSQL ist **optional**. Ohne Datenbank läuft die Engine im Datei-Modus:
+`status` liest `pentest\data\reports\report_*.json` und das Audit-Log.
+Optional Postgres (nur wenn Docker da ist):
+
+```powershell
+.\Start-OptionalPostgres.ps1
+```
 
 Wenn der CVE-Index beim ersten Lauf fehlschlägt (GHSA-Parser) **oder** die
 Spalte Version fast leer ist (NVD speichert oft `version=*`, die echte Range
@@ -140,10 +155,17 @@ Invoke-WebRequest -UseBasicParsing "$base/Start-LabRun.ps1" -OutFile Start-LabRu
 ```
 
 `Start-LabRun.ps1` setzt `PYTHONPATH` auf den Installationsordner und nutzt
-immer `pentest\.venv\Scripts\python.exe`. Default-Ziel ist `185.6.70.234`
-(überschreiben: `-Target 127.0.0.1`). Ohne `-Run` nur `scope-add` + `--dry-run`.
-Mit `-Run` kommt eine JA-Nachfrage, danach `engage` **ohne** `--zeroday` /
-`--hardcore`.
+immer `pentest\.venv\Scripts\python.exe`. Default-Ziel ist **`127.0.0.1`**
+(dieses Gerät). Anderes eigenes Ziel: `-Target <IP>`. Ohne `-Run` nur
+`scope-add` + `--dry-run`. Mit `-Run` kommt eine JA-Nachfrage, danach `engage`
+**ohne** `--zeroday` / `--hardcore`. Default-Tools: **nmap only**. `-Full`
+nimmt nmap+nuclei. ffuf/data-discovery nur mit `--tools ...,ffuf`.
+
+Nach `engage` schreibt die Engine JSON nach `pentest\data\reports\`. Dann:
+
+```powershell
+.\pentest\.venv\Scripts\python.exe -m pentest status
+```
 
 Gleicher Ablauf per venv-Python:
 
@@ -151,17 +173,18 @@ Gleicher Ablauf per venv-Python:
 cd "$env:USERPROFILE\Desktop\Pen Test Engine"
 $env:PYTHONPATH = (Get-Location).Path
 $py = ".\pentest\.venv\Scripts\python.exe"
-& $py -m pentest scope-add 185.6.70.234
-& $py -m pentest engage "Lab" -t 185.6.70.234 --dry-run
-& $py -m pentest engage "Lab" -t 185.6.70.234
+& $py -m pentest scope-add 127.0.0.1
+& $py -m pentest engage "Lab" -t 127.0.0.1 --tools nmap --dry-run
+& $py -m pentest engage "Lab" -t 127.0.0.1 --tools nmap
+& $py -m pentest status
 ```
 
 Nur wenn die IP **dein** System ist. Unautorisiertes Scannen ist illegal.
 
 ### Leonardo — Tools + Lab-Run (einfach einfügen)
 
-PowerShell, **genau dieser Ordner**, immer venv-Python. Die IP muss **dein**
-System sein:
+PowerShell, **genau dieser Ordner**, immer venv-Python. Default ist **127.0.0.1**
+(dieser Laptop). Anderes eigenes Ziel nur mit `-Target`.
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -174,15 +197,25 @@ Invoke-WebRequest -UseBasicParsing "$base/Start-LabRun.ps1" -OutFile Start-LabRu
 .\Start-LabRun.ps1 -Run
 ```
 
-Oder ohne die Skripte, gleicher Effekt:
+Runtime-Fixes (Reports + `--tools` lock) brauchen das Overlay aus diesem Repo:
+
+```powershell
+cd "C:\Users\LeonardoWeihINTENTUR\Desktop"
+git clone --depth 1 -b cursor/pentest-engine-desktop-install-6ac6 https://github.com/cr4ckz3r0/cr4ck_em_4ll.git pte-fixes
+cd pte-fixes
+.\Apply-EngineFixes.ps1
+```
+
+Oder ohne die Skripte, gleicher Effekt (nmap-only, localhost):
 
 ```powershell
 cd "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
 $env:PYTHONPATH = "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
 $py = ".\pentest\.venv\Scripts\python.exe"
-& $py -m pentest scope-add 185.6.70.234
-& $py -m pentest engage "Lab" -t 185.6.70.234 --dry-run
-& $py -m pentest engage "Lab" -t 185.6.70.234
+& $py -m pentest scope-add 127.0.0.1
+& $py -m pentest engage "Lab" -t 127.0.0.1 --tools nmap --dry-run
+& $py -m pentest engage "Lab" -t 127.0.0.1 --tools nmap
+& $py -m pentest status
 ```
 
 Kein `--zeroday`, kein `--hardcore`. hydra / sqlmap / msfconsole werden nicht
@@ -194,6 +227,8 @@ PowerShell, **genau dieser Ordner**, immer venv-Python:
 
 ```powershell
 cd "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
+# Runtime-Fixes + CVE-Parser (Overlay aus diesem Repo, nicht nur ein Raw-File):
+# .\Apply-EngineFixes.ps1   aus dem geklonten cr4ck_em_4ll-Ordner
 Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/patch_cve_poller.py" -OutFile patch_cve_poller.py
 .\pentest\.venv\Scripts\python.exe patch_cve_poller.py .
 .\pentest\.venv\Scripts\python.exe patch_cve_poller.py --self-test
@@ -214,6 +249,8 @@ Quelldaten so.
 - Standard-Scope ist `127.0.0.1`. Weitere Hosts erst nach Freigabe mit
   `python -m pentest scope-add` hinzufügen.
 - Windows-Scanner: `Install-EngineTools.ps1`. hydra, sqlmap, Metasploit
-  bleiben fehlend.
+  bleiben fehlend. Fehlende optionale Tools (ffuf, testssl, nikto, gobuster)
+  werden übersprungen, nicht still gegen Port 80 gehämmert.
+- File-mode: `python -m pentest status` liest `pentest\data\reports` ohne Postgres.
 - Details, CLI und optionales PostgreSQL: siehe README im geklonten Engine-Repo.
 - Sicherheitsregeln: `SECURITY.md` im Engine-Repo.

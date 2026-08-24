@@ -22,9 +22,16 @@ if (-not (Test-Path $venvPython)) {
     $venvPython = "python"
 }
 
-Write-Host "==> Patche GHSA-Parser und NVD/GHSA-Versionsranges" -ForegroundColor Cyan
-& $venvPython $patcher $InstallDir
-if ($LASTEXITCODE -ne 0) { throw "Patch fehlgeschlagen." }
+$fixer = Join-Path $here 'apply_engine_fixes.py'
+if (Test-Path $fixer) {
+    Write-Host '==> Wende Desktop-Fixes an (Reports, --tools, CVE)' -ForegroundColor Cyan
+    & $venvPython $fixer $InstallDir
+    if ($LASTEXITCODE -ne 0) { throw 'apply_engine_fixes.py fehlgeschlagen.' }
+} else {
+    Write-Host '==> Patche GHSA-Parser und NVD/GHSA-Versionsranges' -ForegroundColor Cyan
+    & $venvPython $patcher $InstallDir
+    if ($LASTEXITCODE -ne 0) { throw 'Patch fehlgeschlagen.' }
+}
 
 $env:PYTHONPATH = $InstallDir
 Write-Host "==> Baue lokalen CVE-Index (NVD + CISA KEV + GHSA)" -ForegroundColor Cyan

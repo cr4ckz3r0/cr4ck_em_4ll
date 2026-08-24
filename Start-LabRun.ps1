@@ -17,13 +17,14 @@
 
   This script does not scan from the cloud. Run it on the Windows laptop.
   Target MUST be a host you own or have written authorization for.
+  Default target is 127.0.0.1 (this machine).
 
   Windows PowerShell 5.1-safe: ASCII only, Write-Host in single quotes or
   parentheses, no quoted-backslash in double-quoted strings, example lines use
   '& $py ...' inside single-quoted strings.
 
 .PARAMETER Target
-  IP, hostname, or URL. Default: 185.6.70.234 (override if that is not yours).
+  Default: 127.0.0.1. Override with -Target if you own that host.
 
 .PARAMETER InstallDir
   Engine clone. Default: Desktop\Pen Test Engine
@@ -42,7 +43,7 @@
   Default without -Full is nmap only: port/service recon, no flood.
 #>
 param(
-    [string]$Target = '185.6.70.234',
+    [string]$Target = '127.0.0.1',
     [string]$InstallDir = '',
     [string]$Name = 'Lab',
     [switch]$Run,
@@ -138,4 +139,6 @@ if ($LASTEXITCODE -ne 0) { throw ('engage fehlgeschlagen (Exit ' + $LASTEXITCODE
 
 Write-Host ''
 Write-Host 'Engage beendet.' -ForegroundColor Green
-Write-Host 'Status: python -m pentest status'
+Write-Host '==> status (file-mode: pentest\data\reports, kein Postgres noetig)'
+& $venvPython -m pentest status
+Write-Host 'Reports: pentest\data\reports\report_*.json'

@@ -9,6 +9,8 @@ set -euo pipefail
 #   chmod +x install-desktop.sh
 #   ./install-desktop.sh
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 REPO_URL="https://github.com/leonardowo2002-bot/pentest-engine.git"
 FOLDER_NAME="Pen Test Engine"
 DESKTOP="${XDG_DESKTOP_DIR:-$HOME/Desktop}"
@@ -84,6 +86,15 @@ echo "==> Installiere Python-Pakete (kann mehrere Minuten dauern)"
 "$VENV_PY" -m pip install --upgrade pip
 "$VENV_PY" -m pip install -r "$INSTALL_DIR/requirements.txt"
 "$VENV_PY" -m pip install -e "$INSTALL_DIR"
+
+if [[ -f "$SCRIPT_DIR/apply_engine_fixes.py" ]]; then
+  echo "==> Wende Desktop-Fixes an (file-mode Reports, --tools lock, CVE)"
+  if ! "$VENV_PY" "$SCRIPT_DIR/apply_engine_fixes.py" "$INSTALL_DIR"; then
+    echo "WARN: apply_engine_fixes.py fehlgeschlagen" >&2
+  fi
+else
+  echo "WARN: apply_engine_fixes.py nicht neben dem Installer."
+fi
 
 if [[ -f "$PACKAGE_DIR/.env.example" && ! -f "$PACKAGE_DIR/.env" ]]; then
   cp "$PACKAGE_DIR/.env.example" "$PACKAGE_DIR/.env"
