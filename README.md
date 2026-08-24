@@ -57,6 +57,15 @@ Starter: `~/Desktop/Pen Test Engine/start-pen-test-engine.sh`
 Es werden **keine** Offensiv-Pakete wie nmap, hydra, sqlmap oder Metasploit
 installiert. Die Engine startet ohne sie; fehlende Wrapper melden das sauber.
 
+PostgreSQL ist optional. Ohne Datenbank läuft die Engine im Datei-Modus
+(`scope.json`, Audit/Evidence auf Disk).
+
+Wenn der CVE-Index beim ersten Lauf fehlschlaegt (Netzwerk/API), spaeter erneut:
+
+```text
+python -m pentest cve-update
+```
+
 ## Hinweise
 
 - Standard-Scope ist `127.0.0.1`. Weitere Hosts erst nach Freigabe mit
