@@ -80,8 +80,9 @@ Starter: `~/Desktop/Pen Test Engine/start-pen-test-engine.sh`
 4. Kopiert `.env` und `scope.json` aus den Vorlagen
 5. Lädt das lokale MiniLM-RAG-Modell und indexiert aktuelle CVEs
 
-Es werden **keine** Offensiv-Pakete wie nmap, hydra, sqlmap oder Metasploit
-installiert. Die Engine startet ohne sie; fehlende Wrapper melden das sauber.
+`Install-PenTestEngine.ps1` / `install.ps1` installieren **keine** Scanner-CLIs.
+Nmap + nuclei (+ httpx/subfinder/ffuf) kommen über `Install-EngineTools.ps1`.
+Hydra, sqlmap und Metasploit bleiben auf Windows absichtlich weg.
 
 PostgreSQL ist optional. Ohne Datenbank läuft die Engine im Datei-Modus
 (`scope.json`, Audit/Evidence auf Disk).
@@ -115,6 +116,78 @@ solche Zeilen können weiter `-` zeigen, bis NVD/GHSA sie ergänzen.
 
 Oder `Start-PenTestEngine.cmd` in denselben Ordner legen und damit starten.
 
+## Scanner-CLIs + Lab-Run (Windows)
+
+`install.sh --with-tools` ist **Kali/Debian-apt** und läuft nicht auf einem
+Windows-Laptop. Default-`engage` braucht **nmap + nuclei** (Planner). Adaptive
+Follow-ups können zusätzlich **httpx**, **subfinder**, **ffuf** aufrufen.
+
+Hydra, sqlmap und Metasploit werden **nicht** mitinstalliert (Kali-only /
+Offensive Extras). `--zeroday` / `--hardcore` nicht setzen.
+
+PowerShell, im Engine-Ordner oder aus jedem Ordner (raw GitHub):
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+cd "$env:USERPROFILE\Desktop\Pen Test Engine"
+$base = "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6"
+Invoke-WebRequest "$base/Install-EngineTools.ps1" -OutFile Install-EngineTools.ps1
+Invoke-WebRequest "$base/Start-LabRun.ps1" -OutFile Start-LabRun.ps1
+.\Install-EngineTools.ps1
+.\Start-LabRun.ps1
+# echter Scan erst nach dry-run, nur mit eigenem Ziel:
+.\Start-LabRun.ps1 -Run
+```
+
+`Start-LabRun.ps1` setzt `PYTHONPATH` auf den Installationsordner und nutzt
+immer `pentest\.venv\Scripts\python.exe`. Default-Ziel ist `185.6.70.234`
+(überschreiben: `-Target 127.0.0.1`). Ohne `-Run` nur `scope-add` + `--dry-run`.
+Mit `-Run` kommt eine JA-Nachfrage, danach `engage` **ohne** `--zeroday` /
+`--hardcore`.
+
+Gleicher Ablauf per venv-Python:
+
+```powershell
+cd "$env:USERPROFILE\Desktop\Pen Test Engine"
+$env:PYTHONPATH = (Get-Location).Path
+$py = ".\pentest\.venv\Scripts\python.exe"
+& $py -m pentest scope-add 185.6.70.234
+& $py -m pentest engage "Lab" -t 185.6.70.234 --dry-run
+& $py -m pentest engage "Lab" -t 185.6.70.234
+```
+
+Nur wenn die IP **dein** System ist. Unautorisiertes Scannen ist illegal.
+
+### Leonardo — Tools + Lab-Run (einfach einfügen)
+
+PowerShell, **genau dieser Ordner**, immer venv-Python. Die IP muss **dein**
+System sein:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+cd "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
+$base = "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6"
+Invoke-WebRequest "$base/Install-EngineTools.ps1" -OutFile Install-EngineTools.ps1
+Invoke-WebRequest "$base/Start-LabRun.ps1" -OutFile Start-LabRun.ps1
+.\Install-EngineTools.ps1
+.\Start-LabRun.ps1
+.\Start-LabRun.ps1 -Run
+```
+
+Oder ohne die Skripte, gleicher Effekt:
+
+```powershell
+cd "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
+$env:PYTHONPATH = "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
+$py = ".\pentest\.venv\Scripts\python.exe"
+& $py -m pentest scope-add 185.6.70.234
+& $py -m pentest engage "Lab" -t 185.6.70.234 --dry-run
+& $py -m pentest engage "Lab" -t 185.6.70.234
+```
+
+Kein `--zeroday`, kein `--hardcore`. hydra / sqlmap / msfconsole werden nicht
+installiert.
+
 ### Leonardo — Patch + Index neu bauen (einfach einfügen)
 
 PowerShell, **genau dieser Ordner**, immer venv-Python:
@@ -140,5 +213,7 @@ Quelldaten so.
 
 - Standard-Scope ist `127.0.0.1`. Weitere Hosts erst nach Freigabe mit
   `python -m pentest scope-add` hinzufügen.
+- Windows-Scanner: `Install-EngineTools.ps1`. hydra, sqlmap, Metasploit
+  bleiben fehlend.
 - Details, CLI und optionales PostgreSQL: siehe README im geklonten Engine-Repo.
 - Sicherheitsregeln: `SECURITY.md` im Engine-Repo.
