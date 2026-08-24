@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
   Authorized self-test: scope-add + engage --dry-run. Real engage only with -Run.
