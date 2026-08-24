@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   Authorized self-test: scope-add + engage --dry-run. Real engage only with -Run.
@@ -36,13 +36,18 @@
 
 .PARAMETER Force
   Skip the JA confirmation when -Run is set.
+
+.PARAMETER Full
+  Also run nuclei (more HTTP probes, still rate-limited, still no DoS flags).
+  Default without -Full is nmap only: port/service recon, no flood.
 #>
 param(
     [string]$Target = '185.6.70.234',
     [string]$InstallDir = '',
     [string]$Name = 'Lab',
     [switch]$Run,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$Full
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,15 +83,22 @@ foreach ($dir in @(
 $env:PYTHONPATH = $InstallDir
 Set-Location $InstallDir
 
+if ($Full) {
+    $toolList = 'nmap,nuclei'
+} else {
+    $toolList = 'nmap'
+}
+
 Write-Host '==> Pen Test Engine Lab-Run' -ForegroundColor Cyan
 Write-Host ('    PYTHONPATH = ' + $InstallDir)
 Write-Host ('    python     = ' + $venvPython)
 Write-Host ('    Ziel       = ' + $Target)
 Write-Host ('    Name       = ' + $Name)
-Write-Host '    Flags      = kein --zeroday, kein --hardcore'
+Write-Host ('    Tools      = ' + $toolList + '  (kein hydra/sqlmap/msf, kein --zeroday/--hardcore)')
+Write-Host '    Sicherheit = kein DoS/Flood; Engine blockt --dos --flood --stress --exploit'
 Write-Host ''
 Write-Host ('Nur starten, wenn ' + $Target + ' DIR gehoert oder du schriftliche Erlaubnis hast.') -ForegroundColor Yellow
-Write-Host 'Unautorisiertes Scannen ist illegal.'
+Write-Host 'Unautorisiertes Scannen ist illegal. Das ist kein DDoS, sendet aber echte Pakete.'
 Write-Host ''
 
 Write-Host ('==> scope-add ' + $Target)
@@ -94,32 +106,27 @@ Write-Host ('==> scope-add ' + $Target)
 if ($LASTEXITCODE -ne 0) { throw ('scope-add fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
 
 Write-Host '==> engage --dry-run (kein Netzwerk-Scan der Tools)'
-& $venvPython -m pentest engage $Name -t $Target --dry-run
+& $venvPython -m pentest engage $Name -t $Target --tools $toolList --dry-run
 if ($LASTEXITCODE -ne 0) { throw ('dry-run fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
 
-$engageLine = '& "' + $venvPython + '" -m pentest engage "' + $Name + '" -t ' + $Target
+$engageLine = '& "' + $venvPython + '" -m pentest engage "' + $Name + '" -t ' + $Target + ' --tools ' + $toolList
 
 if (-not $Run) {
     Write-Host ''
     Write-Host 'Dry-run fertig. Echten Scan NICHT gestartet.' -ForegroundColor Green
-    Write-Host ('Wenn ' + $Target + ' dein System ist, gleichen Ordner, dann entweder:')
+    Write-Host ('Wenn ' + $Target + ' dein System ist, gleichen Ordner, dann:')
     Write-Host ''
     Write-Host ('  .\Start-LabRun.ps1 -Target ' + $Target + ' -Run')
     Write-Host ''
-    Write-Host 'oder venv-Python direkt:'
-    Write-Host ''
-    Write-Host ('  cd "' + $InstallDir + '"')
-    Write-Host ('  $env:PYTHONPATH = "' + $InstallDir + '"')
-    Write-Host ('  ' + $engageLine)
-    Write-Host ''
+    Write-Host 'Default ist nur nmap (Ports 1-1024). Kein Nuclei, kein Flood.'
     Write-Host 'Kein --zeroday, kein --hardcore.'
     return
 }
 
 if (-not $Force) {
     Write-Host ''
-    Write-Host ('Naechster Schritt sendet nmap/nuclei (und ggf. httpx/ffuf) an ' + $Target + '.') -ForegroundColor Yellow
-    Write-Host 'Tippe JA (gross), nur wenn das Ziel dir gehoert.'
+    Write-Host ('Naechster Schritt sendet ' + $toolList + ' an ' + $Target + '.') -ForegroundColor Yellow
+    Write-Host 'Kein DDoS, aber echter Traffic. Tippe JA (gross), nur wenn das Ziel dir gehoert.'
     $ans = Read-Host 'Bestaetigung'
     if ($ans -ne 'JA') {
         Write-Host 'Abgebrochen. Kein echter Scan.'
@@ -127,8 +134,8 @@ if (-not $Force) {
     }
 }
 
-Write-Host '==> engage (ohne --zeroday / --hardcore)'
-& $venvPython -m pentest engage $Name -t $Target
+Write-Host '==> engage (nmap-only default, kein --zeroday / --hardcore)'
+& $venvPython -m pentest engage $Name -t $Target --tools $toolList
 if ($LASTEXITCODE -ne 0) { throw ('engage fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
 
 Write-Host ''
