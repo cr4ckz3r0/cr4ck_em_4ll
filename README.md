@@ -86,11 +86,19 @@ installiert. Die Engine startet ohne sie; fehlende Wrapper melden das sauber.
 PostgreSQL ist optional. Ohne Datenbank läuft die Engine im Datei-Modus
 (`scope.json`, Audit/Evidence auf Disk).
 
-Wenn der CVE-Index beim ersten Lauf fehlschlaegt (Netzwerk/API), spaeter erneut:
+Wenn der CVE-Index beim ersten Lauf fehlschlägt (GHSA-Parser), im bereits
+installierten Ordner ausführen:
 
-```text
-python -m pentest cve-update
+```powershell
+cd "$env:USERPROFILE\Desktop\Pen Test Engine"
+Invoke-WebRequest "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/patch_cve_poller.py" -OutFile patch_cve_poller.py
+.\pentest\.venv\Scripts\python.exe patch_cve_poller.py .
+$env:PYTHONPATH = (Get-Location).Path
+.\pentest\.venv\Scripts\python.exe -m pentest cve-update
+.\pentest\.venv\Scripts\python.exe -m pentest cve-stats
 ```
+
+Das dauert ein paar Minuten (NVD + MiniLM). Danach: `python -m pentest intel-search "apache"`.
 
 ## Hinweise
 
