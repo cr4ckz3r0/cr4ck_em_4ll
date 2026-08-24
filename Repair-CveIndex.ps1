@@ -1,7 +1,8 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Fixes GHSA parsing in a local Pen Test Engine install and builds the CVE RAG index.
+  Fixes GHSA parsing, fills CVE affected_version from NVD/GHSA ranges,
+  and rebuilds the local CVE RAG index.
 #>
 $ErrorActionPreference = "Stop"
 
@@ -21,7 +22,7 @@ if (-not (Test-Path $venvPython)) {
     $venvPython = "python"
 }
 
-Write-Host "==> Patche GHSA-Parser" -ForegroundColor Cyan
+Write-Host "==> Patche GHSA-Parser und NVD/GHSA-Versionsranges" -ForegroundColor Cyan
 & $venvPython $patcher $InstallDir
 if ($LASTEXITCODE -ne 0) { throw "Patch fehlgeschlagen." }
 
@@ -31,6 +32,10 @@ Write-Host "==> Baue lokalen CVE-Index (NVD + CISA KEV + GHSA)" -ForegroundColor
 if ($LASTEXITCODE -ne 0) { throw "cve-update fehlgeschlagen." }
 
 Write-Host ""
-Write-Host "Fertig. Pruefen mit:" -ForegroundColor Green
-Write-Host "  python -m pentest cve-stats"
-Write-Host "  python -m pentest intel-search `"remote code execution`""
+Write-Host "Fertig. Pruefen mit (venv-Python, PYTHONPATH=Installationsordner):" -ForegroundColor Green
+Write-Host "  `"$venvPython`" -m pentest cve-stats"
+Write-Host "  `"$venvPython`" -m pentest intel-search `"remote code execution`""
+Write-Host "  `"$venvPython`" -m pentest cve-search -p apache"
+Write-Host ""
+Write-Host "intel-search zeigt eine Version-Spalte, wo NVD/GHSA Ranges liefern."
+Write-Host "CISA-KEV allein hat keine Version — diese Zeilen koennen '-' bleiben."

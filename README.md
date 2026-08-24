@@ -86,8 +86,10 @@ installiert. Die Engine startet ohne sie; fehlende Wrapper melden das sauber.
 PostgreSQL ist optional. Ohne Datenbank läuft die Engine im Datei-Modus
 (`scope.json`, Audit/Evidence auf Disk).
 
-Wenn der CVE-Index beim ersten Lauf fehlschlägt (GHSA-Parser), im bereits
-installierten Ordner ausführen:
+Wenn der CVE-Index beim ersten Lauf fehlschlägt (GHSA-Parser) **oder** die
+Spalte Version fast leer ist (NVD speichert oft `version=*`, die echte Range
+steht in `versionStartIncluding` / `versionEndExcluding`), im installierten
+Ordner ausführen:
 
 ```powershell
 cd "$env:USERPROFILE\Desktop\Pen Test Engine"
@@ -104,9 +106,35 @@ Das dauert ein paar Minuten (NVD + MiniLM). Danach immer den **venv-Python** nut
 ```powershell
 $env:PYTHONPATH = (Get-Location).Path
 .\pentest\.venv\Scripts\python.exe -m pentest intel-search "remote code execution"
+.\pentest\.venv\Scripts\python.exe -m pentest cve-search -p apache
 ```
 
+`intel-search` zeigt danach eine **Version**-Spalte, wo NVD oder GHSA eine Range
+liefern (z. B. `>=2.4.0 <2.4.50`). CISA-KEV allein hat keine Versionsangabe —
+solche Zeilen können weiter `-` zeigen, bis NVD/GHSA sie ergänzen.
+
 Oder `Start-PenTestEngine.cmd` in denselben Ordner legen und damit starten.
+
+### Leonardo — Patch + Index neu bauen (einfach einfügen)
+
+PowerShell, **genau dieser Ordner**, immer venv-Python:
+
+```powershell
+cd "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
+Invoke-WebRequest "https://raw.githubusercontent.com/cr4ckz3r0/cr4ck_em_4ll/cursor/pentest-engine-desktop-install-6ac6/patch_cve_poller.py" -OutFile patch_cve_poller.py
+.\pentest\.venv\Scripts\python.exe patch_cve_poller.py .
+.\pentest\.venv\Scripts\python.exe patch_cve_poller.py --self-test
+$env:PYTHONPATH = "C:\Users\LeonardoWeihINTENTUR\Desktop\Pen Test Engine"
+.\pentest\.venv\Scripts\python.exe -m pentest cve-update
+.\pentest\.venv\Scripts\python.exe -m pentest cve-stats
+.\pentest\.venv\Scripts\python.exe -m pentest intel-search "remote code execution"
+.\pentest\.venv\Scripts\python.exe -m pentest cve-search -p apache
+```
+
+Das füllt `affected_version` aus NVD-CPE-Ranges (`>=2.4.0 <2.4.50`) und GHSA
+`vulnerable_version_range`. Danach hat `intel-search` eine Version-Spalte.
+CISA-KEV-only-Einträge bleiben oft ohne präzise Version — das ist in den
+Quelldaten so.
 
 ## Hinweise
 
