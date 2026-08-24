@@ -109,8 +109,6 @@ Write-Host '==> engage --dry-run (kein Netzwerk-Scan der Tools)'
 & $venvPython -m pentest engage $Name -t $Target --tools $toolList --dry-run
 if ($LASTEXITCODE -ne 0) { throw ('dry-run fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
 
-$engageLine = '& "' + $venvPython + '" -m pentest engage "' + $Name + '" -t ' + $Target + ' --tools ' + $toolList
-
 if (-not $Run) {
     Write-Host ''
     Write-Host 'Dry-run fertig. Echten Scan NICHT gestartet.' -ForegroundColor Green
@@ -140,4 +138,4 @@ if ($LASTEXITCODE -ne 0) { throw ('engage fehlgeschlagen (Exit ' + $LASTEXITCODE
 
 Write-Host ''
 Write-Host 'Engage beendet.' -ForegroundColor Green
-Write-Host ('Status:  & "' + $venvPython + '" -m pentest status')
+Write-Host 'Status: python -m pentest status'
