@@ -255,6 +255,13 @@ def verify_overlay(root: Path) -> None:
     exporter = (root / "pentest" / "reporting" / "json_export.py").read_text(encoding="utf-8")
     if "reports_dir" not in exporter:
         missing.append("json_export.reports_dir")
+    scanner = root / "pentest" / "registry" / "data_scanner.py"
+    if scanner.is_file():
+        stext = scanner.read_text(encoding="utf-8")
+        if "content: str | bytes | None" not in stext:
+            missing.append("data_scanner.run_optional_content")
+    else:
+        missing.append("data_scanner.py")
     ready = root / "pentest" / "ready.py"
     if not ready.is_file():
         missing.append("ready.py")
