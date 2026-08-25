@@ -13,6 +13,8 @@
   Otherwise it downloads this repo branch as a ZIP from GitHub.
 
   Windows PowerShell 5.1-safe: ASCII only, -UseBasicParsing, no em-dash.
+  If pentest\engine.py lacks _export_file_reports (e.g. after git pull),
+  re-run apply_engine_fixes.py: InstallDir copy first, then next-to-script.
 #>
 param(
     [string]$InstallDir = '',
@@ -36,7 +38,7 @@ if (-not $InstallDir) {
 }
 
 if (-not (Test-Path (Join-Path $InstallDir 'pentest\engine.py'))) {
-    throw ('Pen Test Engine nicht gefunden unter ' + $InstallDir + '  — zuerst Install-PenTestEngine.ps1 / install.ps1')
+    throw ('Pen Test Engine nicht gefunden unter ' + $InstallDir + '  - zuerst Install-PenTestEngine.ps1 / install.ps1')
 }
 
 $venvPython = Join-Path $InstallDir 'pentest\.venv\Scripts\python.exe'
@@ -44,13 +46,23 @@ if (-not (Test-Path $venvPython)) {
     $venvPython = Join-Path $InstallDir 'pentest\.venv\bin\python'
 }
 if (-not (Test-Path $venvPython)) {
-    throw ('venv-Python fehlt: pentest\.venv  — zuerst install.ps1')
+    throw ('venv-Python fehlt: pentest\.venv  - zuerst install.ps1')
 }
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$fixer = Join-Path $here 'apply_engine_fixes.py'
-if (-not (Test-Path $fixer)) {
-    Write-Host '==> Overlay nicht neben dem Skript — lade Branch-ZIP' -ForegroundColor Cyan
+$enginePy = Join-Path $InstallDir 'pentest\engine.py'
+$overlayMissing = -not [bool](Select-String -Path $enginePy -Pattern '_export_file_reports' -Quiet)
+$fixerInstall = Join-Path $InstallDir 'apply_engine_fixes.py'
+$fixerHere = Join-Path $here 'apply_engine_fixes.py'
+
+if ($overlayMissing -and (Test-Path $fixerInstall)) {
+    Write-Host '==> Overlay fehlt (z.B. nach git pull) - nutze apply_engine_fixes.py im Engine-Ordner'
+    $fixer = $fixerInstall
+    $here = $InstallDir
+} elseif (Test-Path $fixerHere) {
+    $fixer = $fixerHere
+} else {
+    Write-Host '==> Overlay nicht neben dem Skript - lade Branch-ZIP' -ForegroundColor Cyan
     $zip = Join-Path $env:TEMP 'pte-desktop-fixes.zip'
     $extract = Join-Path $env:TEMP 'pte-desktop-fixes'
     Invoke-WebRequest -UseBasicParsing -Uri $ZipUri -OutFile $zip -Headers $GitHubHeaders
@@ -97,4 +109,5 @@ Write-Host '    .\Start-LabRun.ps1'
 Write-Host '    .\Start-LabRun.ps1 -Run'
 Write-Host '  Anderes eigenes Ziel: .\Start-LabRun.ps1 -Target <IP> -Run'
 Write-Host '  Scanner-CLIs (einmal): .\Install-EngineTools.ps1'
+Write-Host '  Reports: pentest\data\reports\report_latest.md (plus report_<id>.md / JSON)'
 Write-Host 'Unautorisiertes Scannen ist illegal.'

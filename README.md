@@ -119,7 +119,10 @@ Nmap + nuclei (+ httpx/subfinder/ffuf) kommen über `Install-EngineTools.ps1`.
 Hydra, sqlmap und Metasploit bleiben auf Windows absichtlich weg.
 
 Nach dem Klon wendet der Installer `apply_engine_fixes.py` an (File-Mode-Reports,
-`--tools` wirklich ehren, CVE-Parser). Nach einem `git pull` der Engine erneut:
+`--tools` wirklich ehren, CVE-Parser). Die Overlay-Quellen liegen danach **im
+Engine-Ordner**. Nach einem `git pull` der Engine wendet `Start-LabRun.ps1`
+(und `Make-Ready.ps1`) die Fixes automatisch erneut an, sobald
+`pentest\engine.py` das Marker `_export_file_reports` verloren hat. Manuell:
 
 ```powershell
 cd "$env:USERPROFILE\Desktop\Pen Test Engine"
@@ -193,9 +196,21 @@ immer `pentest\.venv\Scripts\python.exe`. Default-Ziel ist **`127.0.0.1`**
 (dieses Gerät). Anderes eigenes Ziel: `-Target <IP>`. Ohne `-Run` nur
 `scope-add` + `--dry-run`. Mit `-Run` kommt eine JA-Nachfrage, danach `engage`
 **ohne** `--zeroday` / `--hardcore`. Default-Tools: **nmap only**. `-Full`
-nimmt nmap+nuclei. ffuf/data-discovery nur mit `--tools ...,ffuf`.
+nimmt nmap+nuclei; **fehlt nuclei, kommt eine klare Warnung** (kein stilles
+Überspringen) und der Lauf fällt auf nmap-only zurück. ffuf/data-discovery nur
+mit `--tools ...,ffuf`.
 
-Nach `engage` schreibt die Engine JSON nach `pentest\data\reports\`. Dann:
+Nach jedem `engage` (auch `--dry-run`) schreibt die Engine JSON **und** Markdown
+nach `pentest\data\reports\`:
+
+- `report_<engagement-id>.json` / `report_<engagement-id>.md` (stabil)
+- `report_latest.md` (immer der letzte Lauf)
+- `pentest_report_<id>_<timestamp>.md` (Archiv)
+
+Gefundene nmap-Dienste werden gegen den **lokalen** CVE-Index (RAG/Cache)
+gematcht und als `cve_match`-Findings in denselben Report gelegt.
+
+Dann:
 
 ```powershell
 .\pentest\.venv\Scripts\python.exe -m pentest status
@@ -286,5 +301,8 @@ Quelldaten so.
   bleiben fehlend. Fehlende optionale Tools (ffuf, testssl, nikto, gobuster)
   werden übersprungen, nicht still gegen Port 80 gehämmert.
 - File-mode: `python -m pentest status` liest `pentest\data\reports` ohne Postgres.
+- Markdown-Report nach jedem Engage (inkl. Dry-Run): `report_latest.md`.
+- `-Full` ohne nuclei warnt und fällt auf nmap-only zurück.
+- Overlays überleben `git pull` der Engine: `Start-LabRun.ps1` re-applied automatisch.
 - Details, CLI und optionales PostgreSQL: siehe README im geklonten Engine-Repo.
 - Sicherheitsregeln: `SECURITY.md` im Engine-Repo.

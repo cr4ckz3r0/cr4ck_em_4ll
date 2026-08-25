@@ -19,6 +19,9 @@
   Target MUST be a host you own or have written authorization for.
   Default target is 127.0.0.1 (this machine).
 
+  If pentest\engine.py lacks _export_file_reports (e.g. after git pull),
+  re-run apply_engine_fixes.py: InstallDir copy first, then next-to-script.
+
   Windows PowerShell 5.1-safe: ASCII only, Write-Host in single quotes or
   parentheses, no quoted-backslash in double-quoted strings, example lines use
   '& $py ...' inside single-quoted strings.
@@ -41,6 +44,7 @@
 .PARAMETER Full
   Also run nuclei (more HTTP probes, still rate-limited, still no DoS flags).
   Default without -Full is nmap only: port/service recon, no flood.
+  If nuclei is missing, warn clearly and fall back to nmap-only.
 #>
 param(
     [string]$Target = '127.0.0.1',
@@ -52,6 +56,57 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+function Test-EngineOverlay {
+    param([string]$EngineRoot)
+    $enginePy = Join-Path $EngineRoot 'pentest\engine.py'
+    if (-not (Test-Path $enginePy)) { return $false }
+    return [bool](Select-String -Path $enginePy -Pattern '_export_file_reports' -Quiet)
+}
+
+function Invoke-ReapplyEngineFixes {
+    param(
+        [string]$EngineRoot,
+        [string]$ScriptDir,
+        [string]$PythonExe
+    )
+    if (Test-EngineOverlay $EngineRoot) { return }
+    Write-Host '==> Overlay fehlt (z.B. nach git pull) - wende apply_engine_fixes.py erneut an' -ForegroundColor Yellow
+    $candidates = @(
+        (Join-Path $EngineRoot 'apply_engine_fixes.py'),
+        (Join-Path $ScriptDir 'apply_engine_fixes.py')
+    )
+    $fixer = $null
+    foreach ($c in $candidates) {
+        if (Test-Path $c) {
+            $fixer = $c
+            break
+        }
+    }
+    if (-not $fixer) {
+        Write-Host 'WARN: apply_engine_fixes.py nicht gefunden.'
+        Write-Host 'Bitte Apply-EngineFixes.ps1 aus dem cr4ck_em_4ll-Ordner ausfuehren.'
+        return
+    }
+    Write-Host ('    Fixer = ' + $fixer)
+    & $PythonExe $fixer $EngineRoot
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'WARN: apply_engine_fixes.py fehlgeschlagen.'
+    }
+}
+
+function Write-ReportPaths {
+    param([string]$EngineRoot)
+    $reportsDir = Join-Path $EngineRoot 'pentest\data\reports'
+    $latestMd = Join-Path $reportsDir 'report_latest.md'
+    Write-Host ('JSON:     ' + (Join-Path $reportsDir 'report_*.json'))
+    if (Test-Path $latestMd) {
+        Write-Host ('Markdown: ' + $latestMd)
+    } else {
+        Write-Host ('Markdown: ' + (Join-Path $reportsDir 'report_*.md'))
+    }
+}
 
 if (-not $InstallDir) {
     $desktop = [Environment]::GetFolderPath('Desktop')
@@ -81,11 +136,22 @@ foreach ($dir in @(
     }
 }
 
+Invoke-ReapplyEngineFixes -EngineRoot $InstallDir -ScriptDir $here -PythonExe $venvPython
+
 $env:PYTHONPATH = $InstallDir
 Set-Location $InstallDir
 
 if ($Full) {
     $toolList = 'nmap,nuclei'
+    $nucleiCmd = Get-Command nuclei -ErrorAction SilentlyContinue
+    if (-not $nucleiCmd) {
+        Write-Host ''
+        Write-Host 'WARN: -Full verlangt nuclei, aber nuclei ist NICHT im PATH.' -ForegroundColor Yellow
+        Write-Host 'Nuclei fehlt. Bitte .\Install-EngineTools.ps1 ausfuehren oder -Full weglassen.'
+        Write-Host 'Dieser Lauf faellt auf nmap-only zurueck (kein stilles Ueberspringen).'
+        Write-Host ''
+        $toolList = 'nmap'
+    }
 } else {
     $toolList = 'nmap'
 }
@@ -109,6 +175,7 @@ if ($LASTEXITCODE -ne 0) { throw ('scope-add fehlgeschlagen (Exit ' + $LASTEXITC
 Write-Host '==> engage --dry-run (kein Netzwerk-Scan der Tools)'
 & $venvPython -m pentest engage $Name -t $Target --tools $toolList --dry-run
 if ($LASTEXITCODE -ne 0) { throw ('dry-run fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
+Write-ReportPaths -EngineRoot $InstallDir
 
 if (-not $Run) {
     Write-Host ''
@@ -141,4 +208,4 @@ Write-Host ''
 Write-Host 'Engage beendet.' -ForegroundColor Green
 Write-Host '==> status (file-mode: pentest\data\reports, kein Postgres noetig)'
 & $venvPython -m pentest status
-Write-Host 'Reports: pentest\data\reports\report_*.json'
+Write-ReportPaths -EngineRoot $InstallDir
