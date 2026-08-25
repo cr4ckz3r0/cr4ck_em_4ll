@@ -1,0 +1,211 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+  Authorized self-test: scope-add + engage --dry-run. Real engage only with -Run.
+
+.DESCRIPTION
+  Always uses pentest\.venv\Scripts\python.exe and sets PYTHONPATH to the
+  engine install directory. Does NOT pass --zeroday or --hardcore.
+
+  Default (no -Run):
+    1. scope-add <Target>
+    2. engage "Lab" -t <Target> --dry-run
+    3. Print the -Run command and the equivalent venv-python lines.
+
+  With -Run:
+    After dry-run, ask for JA (unless -Force), then engage without dry-run.
+
+  This script does not scan from the cloud. Run it on the Windows laptop.
+  Target MUST be a host you own or have written authorization for.
+  Default target is 127.0.0.1 (this machine).
+
+  If pentest\engine.py lacks _export_file_reports (e.g. after git pull),
+  re-run apply_engine_fixes.py: InstallDir copy first, then next-to-script.
+
+  Windows PowerShell 5.1-safe: ASCII only, Write-Host in single quotes or
+  parentheses, no quoted-backslash in double-quoted strings, example lines use
+  '& $py ...' inside single-quoted strings.
+
+.PARAMETER Target
+  Default: 127.0.0.1. Override with -Target if you own that host.
+
+.PARAMETER InstallDir
+  Engine clone. Default: Desktop\Pen Test Engine
+
+.PARAMETER Name
+  Engagement name. Default: Lab
+
+.PARAMETER Run
+  After dry-run, run the real engage (still without --zeroday / --hardcore).
+
+.PARAMETER Force
+  Skip the JA confirmation when -Run is set.
+
+.PARAMETER Full
+  Also run nuclei (more HTTP probes, still rate-limited, still no DoS flags).
+  Default without -Full is nmap only: port/service recon, no flood.
+  If nuclei is missing, warn clearly and fall back to nmap-only.
+#>
+param(
+    [string]$Target = '127.0.0.1',
+    [string]$InstallDir = '',
+    [string]$Name = 'Lab',
+    [switch]$Run,
+    [switch]$Force,
+    [switch]$Full
+)
+
+$ErrorActionPreference = 'Stop'
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+function Test-EngineOverlay {
+    param([string]$EngineRoot)
+    $enginePy = Join-Path $EngineRoot 'pentest\engine.py'
+    if (-not (Test-Path $enginePy)) { return $false }
+    return [bool](Select-String -Path $enginePy -Pattern '_export_file_reports' -Quiet)
+}
+
+function Invoke-ReapplyEngineFixes {
+    param(
+        [string]$EngineRoot,
+        [string]$ScriptDir,
+        [string]$PythonExe
+    )
+    if (Test-EngineOverlay $EngineRoot) { return }
+    Write-Host '==> Overlay fehlt (z.B. nach git pull) - wende apply_engine_fixes.py erneut an' -ForegroundColor Yellow
+    $candidates = @(
+        (Join-Path $EngineRoot 'apply_engine_fixes.py'),
+        (Join-Path $ScriptDir 'apply_engine_fixes.py')
+    )
+    $fixer = $null
+    foreach ($c in $candidates) {
+        if (Test-Path $c) {
+            $fixer = $c
+            break
+        }
+    }
+    if (-not $fixer) {
+        Write-Host 'WARN: apply_engine_fixes.py nicht gefunden.'
+        Write-Host 'Bitte Apply-EngineFixes.ps1 aus dem cr4ck_em_4ll-Ordner ausfuehren.'
+        return
+    }
+    Write-Host ('    Fixer = ' + $fixer)
+    & $PythonExe $fixer $EngineRoot
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'WARN: apply_engine_fixes.py fehlgeschlagen.'
+    }
+}
+
+function Write-ReportPaths {
+    param([string]$EngineRoot)
+    $reportsDir = Join-Path $EngineRoot 'pentest\data\reports'
+    $latestMd = Join-Path $reportsDir 'report_latest.md'
+    Write-Host ('JSON:     ' + (Join-Path $reportsDir 'report_*.json'))
+    if (Test-Path $latestMd) {
+        Write-Host ('Markdown: ' + $latestMd)
+    } else {
+        Write-Host ('Markdown: ' + (Join-Path $reportsDir 'report_*.md'))
+    }
+}
+
+if (-not $InstallDir) {
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    if (-not $desktop) { $desktop = Join-Path $env:USERPROFILE 'Desktop' }
+    $InstallDir = Join-Path $desktop 'Pen Test Engine'
+}
+
+$venvPython = Join-Path $InstallDir 'pentest\.venv\Scripts\python.exe'
+$binDir = Join-Path $env:LOCALAPPDATA 'PenTestEngine\bin'
+$pdtmHome = Join-Path $env:USERPROFILE '.pdtm\go\bin'
+
+if (-not (Test-Path $venvPython)) {
+    throw ('venv-Python fehlt: ' + $venvPython + '  (zuerst Install-PenTestEngine.ps1 / install.ps1, dann Install-EngineTools.ps1)')
+}
+if (-not (Test-Path (Join-Path $InstallDir 'pentest\cli.py'))) {
+    throw ('Pen Test Engine nicht gefunden unter ' + $InstallDir)
+}
+
+foreach ($dir in @(
+        $binDir,
+        $pdtmHome,
+        (Join-Path ${env:ProgramFiles(x86)} 'Nmap'),
+        (Join-Path $env:ProgramFiles 'Nmap')
+    )) {
+    if ($dir -and (Test-Path $dir)) {
+        $env:Path = $dir + ';' + $env:Path
+    }
+}
+
+Invoke-ReapplyEngineFixes -EngineRoot $InstallDir -ScriptDir $here -PythonExe $venvPython
+
+$env:PYTHONPATH = $InstallDir
+Set-Location $InstallDir
+
+if ($Full) {
+    $toolList = 'nmap,nuclei'
+    $nucleiCmd = Get-Command nuclei -ErrorAction SilentlyContinue
+    if (-not $nucleiCmd) {
+        Write-Host ''
+        Write-Host 'WARN: -Full verlangt nuclei, aber nuclei ist NICHT im PATH.' -ForegroundColor Yellow
+        Write-Host 'Nuclei fehlt. Bitte .\Install-EngineTools.ps1 ausfuehren oder -Full weglassen.'
+        Write-Host 'Dieser Lauf faellt auf nmap-only zurueck (kein stilles Ueberspringen).'
+        Write-Host ''
+        $toolList = 'nmap'
+    }
+} else {
+    $toolList = 'nmap'
+}
+
+Write-Host '==> Pen Test Engine Lab-Run' -ForegroundColor Cyan
+Write-Host ('    PYTHONPATH = ' + $InstallDir)
+Write-Host ('    python     = ' + $venvPython)
+Write-Host ('    Ziel       = ' + $Target)
+Write-Host ('    Name       = ' + $Name)
+Write-Host ('    Tools      = ' + $toolList + '  (kein hydra/sqlmap/msf, kein --zeroday/--hardcore)')
+Write-Host '    Sicherheit = kein DoS/Flood; Engine blockt --dos --flood --stress --exploit'
+Write-Host ''
+Write-Host ('Nur starten, wenn ' + $Target + ' DIR gehoert oder du schriftliche Erlaubnis hast.') -ForegroundColor Yellow
+Write-Host 'Unautorisiertes Scannen ist illegal. Das ist kein DDoS, sendet aber echte Pakete.'
+Write-Host ''
+
+Write-Host ('==> scope-add ' + $Target)
+& $venvPython -m pentest scope-add $Target
+if ($LASTEXITCODE -ne 0) { throw ('scope-add fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
+
+Write-Host '==> engage --dry-run (kein Netzwerk-Scan der Tools)'
+& $venvPython -m pentest engage $Name -t $Target --tools $toolList --dry-run
+if ($LASTEXITCODE -ne 0) { throw ('dry-run fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
+Write-ReportPaths -EngineRoot $InstallDir
+
+if (-not $Run) {
+    Write-Host ''
+    Write-Host 'Dry-run fertig. Echten Scan NICHT gestartet.' -ForegroundColor Green
+    Write-Host ('Wenn ' + $Target + ' dein System ist, gleichen Ordner, dann:')
+    Write-Host ''
+    Write-Host ('  .\Start-LabRun.ps1 -Target ' + $Target + ' -Run')
+    Write-Host ''
+    Write-Host 'Default ist nur nmap (Ports 1-1024). Kein Nuclei, kein Flood.'
+    Write-Host 'Kein --zeroday, kein --hardcore.'
+    return
+}
+
+if (-not $Force) {
+    Write-Host ''
+    Write-Host ('Naechster Schritt sendet ' + $toolList + ' an ' + $Target + '.') -ForegroundColor Yellow
+    Write-Host 'Kein DDoS, aber echter Traffic. Tippe JA (gross), nur wenn das Ziel dir gehoert.'
+    $ans = Read-Host 'Bestaetigung'
+    if ($ans -ne 'JA') {
+        Write-Host 'Abgebrochen. Kein echter Scan.'
+        return
+    }
+}
+
+Write-Host '==> engage (nmap-only default, kein --zeroday / --hardcore)'
+& $venvPython -m pentest engage $Name -t $Target --tools $toolList
+if ($LASTEXITCODE -ne 0) { throw ('engage fehlgeschlagen (Exit ' + $LASTEXITCODE + ').') }
+
+Write-Host ''
+Write-Host 'Engage beendet.' -ForegroundColor Green
+Write-Host '==> status (file-mode: pentest\data\reports, kein Postgres noetig)'
+& $venvPython -m pentest status
+Write-ReportPaths -EngineRoot $InstallDir
